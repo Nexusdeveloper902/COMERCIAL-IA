@@ -24,10 +24,13 @@ def collect_raw(
     scrapers: Iterable[BaseScraper],
     raw_dir: str | Path,
     state: PipelineState,
+    max_products: int | None = None,
 ) -> Path:
     """Run all scrapers, writing raw records to a dated JSONL file.
 
     Resumable: already-seen URLs and already-processed raw keys are skipped.
+    If ``max_products`` is set, collection stops after that many NEW records
+    in this run (existing state is still preserved).
     """
     raw_dir = Path(raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -37,6 +40,9 @@ def collect_raw(
         for scraper in scrapers:
             log.info("collecting from source: %s", scraper.name)
             for record in scraper.iter_raw_records():
+                if max_products is not None and max_products > 0 and count >= max_products:
+                    log.info("max_products limit (%d) reached; stopping collection", max_products)
+                    return out_path
                 if state.has_url(scraper.name, record.source.url):
                     continue
                 key = _raw_key(record)

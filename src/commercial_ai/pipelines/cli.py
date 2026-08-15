@@ -37,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", default="config/config.yaml")
     parser.add_argument("--skip-collect", action="store_true", help="skip raw collection (reuse existing raw jsonl)")
     parser.add_argument("--raw", default=None, help="path to a raw jsonl to process (skip collect)")
+    parser.add_argument("--max-products", type=int, default=None,
+                        help="cap how many NEW raw records to collect this run (resumability state still preserved)")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -49,9 +51,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.skip_collect and not args.raw:
         scrapers = build_scrapers(cfg)
-        collect_raw(scrapers, cfg["paths"]["raw_dir"], state)
+        collect_raw(scrapers, cfg["paths"]["raw_dir"], state, max_products=args.max_products)
 
     stats = run_pipeline(cfg, raw_path=args.raw)
+
+    # Persist stats for monitoring (overwrite each run).
+    stats_file = Path(cfg["paths"]["data_dir"]) / "last_run_stats.json"
+    from datetime import datetime, timezone
+    stats["finished_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    stats_file.write_text(json.dumps(stats, indent=2, ensure_ascii=False), encoding="utf-8")
+
     print(json.dumps(stats, indent=2, ensure_ascii=False))
     return 0
 
