@@ -110,12 +110,14 @@ stores becomes one canonical product with multiple seller offers (see §5).
       {
         "seller": { "name": "Store A", "url": "https://..." },
         "price": { "value": 459900, "currency": "COP" },
+        "price_cop": { "value": 459900.0, "currency": "COP" },   // derived FX conversion
         "availability": "in_stock",
         "stock_quantity": null,
         "source": { "url": "...", "domain": "...", "scraped_at": "2026-08-15T20:00:00Z" }
       }
     ],
-    "best_price": { "value": 459900, "currency": "COP" }   // derived convenience pointer
+    "best_price": { "value": 459900, "currency": "COP" },        // original currency
+    "best_price_cop": { "value": 459900.0, "currency": "COP" }   // derived: min COP price
   },
   "description": {
     "short": null,
@@ -179,6 +181,11 @@ A `Normalizer` composes focused, single-purpose functions:
 
 - **currency**: parse `"$499.900"`, `"$499,900"`, `"499900 COP"` → `{"value": 499900, "currency": "COP"}`.
   Treat `.`/`,` group separators by Colombian/locale heuristics; never guess currency not implied by source.
+  Source-supplied `raw["currency"]` (e.g. `"USD"` for Best Buy) wins over the config default.
+- **FX conversion (derived)**: every offer price is converted to COP using real live rates
+  (`open.er-api.com`, cached 24h, static fallback if offline) and stored as `price_cop`
+  alongside the preserved original `price`. `best_price_cop` = min in-stock COP price, so
+  products from USD and COP sources are comparable on one scale.
 - **numbers**: regex extraction; reject malformed rather than fabricating.
 - **units**: `units.json` alias map → canonical unit + numeric value (e.g. `"1 ms"`, `"1ms response"` → `response_time_ms: 1`).
 - **brand**: synonym/canonical map (e.g. `"logi"` → `"Logitech"`); else Title-case.
@@ -205,7 +212,8 @@ available manufacturer identifiers, in priority order:
 `product_id = <category>_<fingerprint_hash>` (stable hash of the identity key).
 Two records sharing a fingerprint merge into one canonical product; their offers are
 concatenated in `commerce.offers` (each retaining its own `source`).
-`best_price` is recomputed (min price) whenever offers change.
+`best_price` is recomputed (min price, using COP-converted values for cross-currency
+comparison) whenever offers change; `best_price_cop` is the same in COP.
 
 No identifier at all → flagged for review (rejected with `reason: insufficient_identity`),
 since dedup would be unsafe.

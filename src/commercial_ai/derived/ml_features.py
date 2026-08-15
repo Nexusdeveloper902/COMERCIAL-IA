@@ -26,6 +26,7 @@ def flatten_for_ml(product: CanonicalProduct) -> dict[str, Any]:
         "subcategory": product.identity.subcategory,
         "price": best.value if best else None,
         "currency": best.currency if best else None,
+        "price_cop": product.best_price_cop.value if product.best_price_cop else None,
         "availability_best": product.offers[0].availability if product.offers else "unknown",
         "num_offers": len(product.offers),
         "use_cases": "|".join(product.use_cases),

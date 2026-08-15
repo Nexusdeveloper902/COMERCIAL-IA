@@ -91,7 +91,12 @@ class Price:
 
 @dataclass
 class Offer:
-    """A single seller offer. A canonical product may have many offers."""
+    """A single seller offer. A canonical product may have many offers.
+
+    ``price`` is always the original source currency (preserved verbatim).
+    ``price_cop`` is a derived conversion to COP for cross-source comparison
+    (added by the FX step; None when price is missing or conversion unavailable).
+    """
 
     seller_name: str
     seller_url: str
@@ -99,11 +104,13 @@ class Offer:
     availability: str  # in_stock|out_of_stock|preorder|unknown
     stock_quantity: int | None = None
     source: SourceRef | None = None
+    price_cop: Price | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "seller": {"name": self.seller_name, "url": self.seller_url},
             "price": self.price.to_dict(),
+            "price_cop": self.price_cop.to_dict() if self.price_cop else None,
             "availability": self.availability,
             "stock_quantity": self.stock_quantity,
             "source": self.source.to_dict() if self.source else None,
@@ -140,6 +147,7 @@ class CanonicalProduct:
     identifiers: Identifiers
     offers: list[Offer] = field(default_factory=list)
     best_price: Price | None = None
+    best_price_cop: Price | None = None
     description: dict[str, Any] = field(default_factory=dict)
     specifications: dict[str, Any] = field(default_factory=dict)
     specifications_extra: dict[str, Any] = field(default_factory=dict)
@@ -157,6 +165,7 @@ class CanonicalProduct:
             "commerce": {
                 "offers": [o.to_dict() for o in self.offers],
                 "best_price": self.best_price.to_dict() if self.best_price else None,
+                "best_price_cop": self.best_price_cop.to_dict() if self.best_price_cop else None,
             },
             "description": self.description,
             "specifications": self.specifications,

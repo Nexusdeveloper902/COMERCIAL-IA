@@ -9,8 +9,8 @@ from typing import Any, Iterator
 
 from ..deduplication import Deduplicator
 from ..derived import write_ml_datasets
-from ..models import RawRecord, RejectedRecord
-from ..normalization import Normalizer
+from ..models import Price, RawRecord, RejectedRecord
+from ..normalization import CurrencyConverter, Normalizer, enrich_prices_cop
 from ..storage.jsonl import JsonlWriter, read_jsonl
 from ..storage.pipeline_state import PipelineState
 from ..taxonomy import TaxonomyLoader
@@ -73,6 +73,18 @@ def run_pipeline(
     normalizer = Normalizer(taxonomy, default_currency=cfg["currency"]["default"])
     validator = Validator(taxonomy, allowed_currencies=cfg["currency"]["allowed"])
 
+    # FX converter: fetches real USD->COP rates (cached, with offline fallback).
+    # Preserves original prices; adds a converted price_cop to each offer.
+    fx_cfg = cfg.get("fx", {})
+    converter = CurrencyConverter(
+        cache_path=paths.get("data_dir", "data") + "/.fx_cache.json",
+        rates_url=fx_cfg.get("rates_url"),
+        fallback_usd_cop=fx_cfg.get("fallback_usd_cop", 4100.0),
+        ttl_seconds=fx_cfg.get("ttl_seconds", 86400),
+        user_agent=cfg["scraping"]["user_agent"],
+        respect_robots=cfg["scraping"]["respect_robots"],
+    )
+
     state = PipelineState(cfg["pipeline"]["state_file"])
 
     # Determine which raw inputs to process.
@@ -116,6 +128,13 @@ def run_pipeline(
             continue
         if result.warnings:
             log.debug("warnings for %s: %s", product.product_id, result.warnings)
+        # Enrich with COP conversion (original price preserved).
+        enrich_prices_cop(product, converter)
+        # For singleton products (no merge), set best_price_cop directly.
+        if product.best_price and not product.best_price_cop:
+            cop = converter.convert(product.best_price.value, product.best_price.currency, "COP")
+            if cop is not None:
+                product.best_price_cop = Price(value=cop, currency="COP")
         deduper.add(product)
         valid += 1
 
@@ -126,16 +145,16 @@ def run_pipeline(
                 state.mark_shard_processed(shard.name, count=0)
                 shards_done += 1
 
-    # Write rejected incrementally-style (single file, but one record per line)
+    # Write rejected (regenerated view each run; truncate to avoid stale rows)
     rejected_path = rejected_dir / "rejected_latest.jsonl"
-    with JsonlWriter(rejected_path) as w:
+    with JsonlWriter(rejected_path, truncate=True) as w:
         for r in rejected:
             w.write(r.to_dict())
 
-    # Write canonical products
+    # Write canonical products (regenerated view each run; truncate)
     products = deduper.products
     canonical_path = normalized_dir / "products.jsonl"
-    with JsonlWriter(canonical_path) as w:
+    with JsonlWriter(canonical_path, truncate=True) as w:
         for p in products:
             w.write(p.to_dict())
 

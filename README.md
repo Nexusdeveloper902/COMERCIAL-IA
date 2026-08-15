@@ -101,6 +101,8 @@ below 2 GB.
 ## Key guarantees
 
 - **Honest provenance:** every record carries `source.{url,domain,scraped_at,source_kind}`.
+- **Original prices preserved:** a USD Best Buy offer keeps `price: {value:149.99, currency:USD}`
+  and also gains `price_cop: {value:..., currency:COP}` converted from real exchange rates.
   The bundled `SampleSourceScraper` reads `data/sample/*.json` fixtures tagged
   `source_kind="sample"` — these exercise the pipeline but are **never** presented
   as real scraped data. Real sources are added by implementing one `BaseScraper` subclass.
@@ -140,6 +142,39 @@ To enable it:
 The adapter searches Best Buy's categories for our four product types, paginates
 through results, and yields raw records. The shared normalizer maps Best Buy
 fields (`_bby_upc` → `upc`, `_bby_manufacturer` → `brand`, `currency: USD`, etc.).
+
+## Currency conversion (real USD ↔ COP rates)
+
+The pipeline converts every offer price to Colombian Pesos using **real, live
+exchange rates**, while **keeping the original price untouched**. So a Best Buy
+USD offer ends up as:
+
+```json
+"offers": [{
+  "price":      {"value": 149.99, "currency": "USD"},
+  "price_cop":  {"value": 599996.0, "currency": "COP"}
+}]
+```
+
+How it works (`src/commercial_ai/normalization/fx.py`):
+- Fetches rates from a **free, no-API-key** endpoint (`open.er-api.com`, which
+  supports COP — `forex-python`'s backend lacks COP and has been unreliable).
+- Rates are cached on disk (`data/.fx_cache.json`) with a 24h TTL, so repeated
+  runs don't hammer the API.
+- If the API is unreachable, it falls back to a stale cache, then a static
+  configurable rate (`fx.fallback_usd_cop` in config) — and logs that it's using
+  a fallback so the data provenance stays honest.
+- `best_price_cop` is computed per product (min in-stock COP price) so the
+  recommender can compare products across USD and COP sources on one scale.
+- The derived ML dataset includes both `price` (original) and `price_cop` columns.
+
+Config (`config/config.yaml`):
+```yaml
+fx:
+  rates_url: "https://open.er-api.com/v6/latest/USD"
+  fallback_usd_cop: 4100.0
+  ttl_seconds: 86400
+```
 
 ## Adding a new category
 

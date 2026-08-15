@@ -78,8 +78,9 @@ class Deduplicator:
         # merge media
         base.media["images"] = _union(base.media.get("images", []), other.media.get("images", []))
 
-        # recompute best price
+        # recompute best price (original currency + COP)
         base.best_price = _compute_best_price(base.offers)
+        base.best_price_cop = _compute_best_price_cop(base.offers)
 
 
 def _offer_exists(offers: list[Offer], offer: Offer) -> bool:
@@ -100,9 +101,27 @@ def _union(a: list[Any], b: list[Any]) -> list[Any]:
 
 
 def _compute_best_price(offers: list[Offer]) -> Price | None:
-    in_stock = [o for o in offers if o.availability == "in_stock" and o.price.value is not None]
-    pool = in_stock or [o for o in offers if o.price.value is not None]
+    """Best price in original currency (first offer's currency wins for tie-break).
+
+    For cross-currency offers prefer the COP-converted value when available so
+    comparisons are meaningful (a $150 USD offer is not "cheaper" than a $499900
+    COP offer by raw number).
+    """
+    priced = [o for o in offers if o.price.value is not None]
+    in_stock = [o for o in priced if o.availability == "in_stock"]
+    pool = in_stock or priced
     if not pool:
         return None
-    best = min(pool, key=lambda o: o.price.value)  # type: ignore[arg-type]
+    best = min(pool, key=lambda o: (o.price_cop.value if o.price_cop else o.price.value))  # type: ignore[arg-type]
     return Price(value=best.price.value, currency=best.price.currency)
+
+
+def _compute_best_price_cop(offers: list[Offer]) -> Price | None:
+    """Best price expressed in COP (converted). None if no offer has a COP price."""
+    cop_priced = [o for o in offers if o.price_cop and o.price_cop.value is not None]
+    in_stock = [o for o in cop_priced if o.availability == "in_stock"]
+    pool = in_stock or cop_priced
+    if not pool:
+        return None
+    best = min(pool, key=lambda o: o.price_cop.value)  # type: ignore[arg-type]
+    return Price(value=best.price_cop.value, currency="COP")

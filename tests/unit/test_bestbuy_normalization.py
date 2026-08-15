@@ -50,6 +50,34 @@ def test_bestbuy_normalizes_to_usd(taxonomy):
     assert product.specifications["sensor_dpi"] == 25600
 
 
+def test_bestbuy_usd_price_converted_to_cop(taxonomy, tmp_path):
+    """A USD Best Buy offer gains a COP conversion while keeping its USD price."""
+    import json
+    import time
+    from commercial_ai.models import Price
+    from commercial_ai.normalization import CurrencyConverter, enrich_prices_cop
+
+    # seed fx cache (no network)
+    fx_cache = tmp_path / ".fx_cache.json"
+    fx_cache.write_text(json.dumps({
+        "fetched_at": time.time(),
+        "rates": {"USD": 1.0, "COP": 4000.0},
+    }), encoding="utf-8")
+
+    n = Normalizer(taxonomy, default_currency="COP")
+    product = n.normalize(_bby_raw())
+    converter = CurrencyConverter(cache_path=fx_cache)
+    enrich_prices_cop(product, converter)
+
+    # original USD price preserved
+    assert product.offers[0].price.currency == "USD"
+    assert product.offers[0].price.value == 149.99
+    # COP conversion added alongside
+    assert product.offers[0].price_cop is not None
+    assert product.offers[0].price_cop.currency == "COP"
+    assert product.offers[0].price_cop.value == 149.99 * 4000.0
+
+
 def test_bestbuy_record_passes_validation(taxonomy):
     n = Normalizer(taxonomy, default_currency="COP")
     v = Validator(taxonomy, allowed_currencies=["COP", "USD", "EUR"])

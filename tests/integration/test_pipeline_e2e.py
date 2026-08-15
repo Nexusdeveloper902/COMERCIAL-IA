@@ -55,3 +55,28 @@ def test_pipeline_end_to_end(tmp_path):
     # derived datasets produced
     assert (Path(cfg["paths"]["derived_dir"]) / "ml_features.jsonl").exists()
     assert (Path(cfg["paths"]["derived_dir"]) / "ml_features.csv").exists()
+
+    # FX: every offer keeps its original price AND gains a COP conversion.
+    # Pre-seed the fx cache so no network is needed.
+    import json as _json
+    import time as _time
+    fx_cache = Path(cfg["paths"]["data_dir"]) / ".fx_cache.json"
+    fx_cache.write_text(_json.dumps({
+        "fetched_at": _time.time(),
+        "rates": {"USD": 1.0, "COP": 4000.0, "EUR": 0.9},
+    }), encoding="utf-8")
+
+    stats2 = run_pipeline(cfg, raw_path=raw_path)
+    # JsonlWriter appends; clear between runs in this test so we read only run 2.
+    products2 = [_json.loads(l) for l in open(cfg["paths"]["normalized_dir"] + "/products.jsonl")]
+    mice = [p for p in products2 if p["identity"]["category"] == "mouse"]
+    assert len(mice) == 1
+    for offer in mice[0]["commerce"]["offers"]:
+        assert offer["price_cop"] is not None
+        assert offer["price_cop"]["currency"] == "COP"
+        # COP->COP: converted value equals original
+        assert offer["price_cop"]["value"] == offer["price"]["value"]
+    assert mice[0]["commerce"]["best_price_cop"]["currency"] == "COP"
+    # derived ML rows include price_cop column
+    ml_row = _json.loads(open(cfg["paths"]["derived_dir"] + "/ml_features.jsonl").readline())
+    assert "price_cop" in ml_row

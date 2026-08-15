@@ -56,6 +56,18 @@ COP/USD) — the caller's `default_currency` decides; explicit tokens (cop/usd/e
 Source-supplied `raw["currency"]` (e.g. "USD" for Best Buy) wins over the config default.
 See `normalization/currency.py`.
 
+## FX conversion (USD <-> COP, real rates)
+- `CurrencyConverter` in `normalization/fx.py`: fetches live rates from `open.er-api.com`
+  (free, no API key, supports COP). Cached in `data/.fx_cache.json` with 24h TTL.
+- If API down: stale cache -> static fallback (`fx.fallback_usd_cop`); logs `is_using_fallback`.
+- Original `price` ALWAYS preserved; a derived `price_cop` is added alongside on each Offer.
+- `best_price_cop` = min in-stock COP price (for cross-currency comparison).
+- `enrich_prices_cop(product, converter)` mutates offers in-place; called in normalize_pipeline
+  after validation, before dedup.
+- ML features include both `price` (original) and `price_cop` columns.
+- Why not `forex-python`: its backend (ratesapi.eu) lacks COP and is unreliable; direct
+  no-key JSON API is simpler and more robust for Colombian Pesos.
+
 ## Fingerprint safety
 `fingerprint()` rejects generic models (bare nouns like "Mouse"/"Teclado", short pure-letter
 tokens) via `_is_generic_model()` — brand+model path only used when model has a digit.
