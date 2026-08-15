@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "connectivity_types": ["usb", "usb_c", "wireless_2.4ghz", "bluetooth", "aux_3.5mm", "hdmi", "displayport", "usb_receiver"],
+  "aliases": {
+    "usb-a": "usb",
+    "usb type-a": "usb",
+    "usb type-c": "usb_c",
+    "type-c": "usb_c",
+    "dongle": "usb_receiver",
+    "2.4 ghz": "wireless_2.4ghz",
+    "2.4ghz": "wireless_2.4ghz",
+    "inalambrico 2.4 ghz": "wireless_2.4ghz",
+    "wireless": "wireless_2.4ghz",
+    "bt": "bluetooth",
+    "bluetooth 5.0": "bluetooth",
+    "bluetooth 5.1": "bluetooth",
+    "bluetooth 5.2": "bluetooth",
+    "bluetooth 5.3": "bluetooth",
+    "jack 3.5": "aux_3.5mm",
+    "3.5mm": "aux_3.5mm",
+    "mini-jack": "aux_3.5mm",
+    "hdmi 2.0": "hdmi",
+    "hdmi 2.1": "hdmi",
+    "dp": "displayport",
+    "display port": "displayport"
+  }
+}
