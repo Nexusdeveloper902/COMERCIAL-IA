@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "subcategories": {
+    "mouse": ["gaming_mouse", "office_mouse", "ergonomic_mouse", "travel_mouse"],
+    "keyboard": ["mechanical_keyboard", "membrane_keyboard", "gaming_keyboard", "office_keyboard"],
+    "headphones": ["over_ear", "on_ear", "in_ear", "gaming_headset", "true_wireless"],
+    "monitor": ["gaming_monitor", "office_monitor", "professional_monitor", "portable_monitor"]
+  }
+}

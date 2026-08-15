@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "features": [
+    "wireless",
+    "wired",
+    "rgb",
+    "backlight",
+    "hot_swappable",
+    "programmable_buttons",
+    "macro_keys",
+    "noise_cancellation",
+    "active_noise_cancellation",
+    "microphone",
+    "detachable_cable",
+    "fast_charging",
+    "usb_pass_through",
+    "mechanical_switches",
+    "ergonomic",
+    "lightweight",
+    "hdmi_vrr",
+    "hdr",
+    "curved",
+    "usb_hub"
+  ]
+}

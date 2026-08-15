@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "units": {
+    "ms": "ms",
+    "millisecond": "ms",
+    "milliseconds": "ms",
+    "g": "g",
+    "gram": "g",
+    "grams": "g",
+    "gr": "g",
+    "hz": "hz",
+    "hertz": "hz",
+    "in": "in",
+    "inch": "in",
+    "inches": "in",
+    "mm": "mm",
+    "millimeter": "mm",
+    "millimeters": "mm",
+    "ohm": "ohm",
+    "ohms": "ohm",
+    "dpi": "dpi",
+    "cpi": "dpi",
+    "nit": "nits",
+    "nits": "nits",
+    "cd/m2": "nits",
+    "h": "h",
+    "hours": "h",
+    "hora": "h",
+    "horas": "h"
+  }
+}

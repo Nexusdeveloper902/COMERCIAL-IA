@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "spec_names": {
+    "mouse": {
+      "weight_g": ["weight", "peso", "peso g", "weight g", "mass"],
+      "sensor_dpi": ["dpi", "cpi", "max dpi", "max dpi resolution", "sensor dpi", "resolucion dpi"],
+      "sensor_type": ["sensor", "tipo de sensor", "sensor type"],
+      "polling_rate_hz": ["polling rate", "tasa de sondeo", "report rate", "report rate hz", "polling rate hz"],
+      "buttons": ["button count", "botones", "buttons", "number of buttons", "cantidad de botones"],
+      "connectivity": ["conectividad", "connection", "connectivity"],
+      "bluetooth": ["bluetooth", "bt"],
+      "wireless": ["inalambrico", "wireless", "inalambrica", "wireless connection"],
+      "battery_life_hours": ["battery life", "duracion bateria", "autonomia", "battery life hours", "battery"],
+      "dimensions_mm": ["dimensions", "dimensiones", "size", "tamano"]
+    },
+    "keyboard": {
+      "keyboard_layout": ["layout", "disposicion", "teclado layout", "keyboard layout"],
+      "switch_type": ["switch", "switches", "tipo de switch", "switch type", "key switch"],
+      "connectivity": ["conectividad", "connection", "connectivity"],
+      "wireless": ["inalambrico", "wireless"],
+      "bluetooth": ["bluetooth", "bt"],
+      "backlight": ["backlight", "retroiluminacion", "backlighting"],
+      "rgb": ["rgb", "rgb lighting", "iluminacion rgb"],
+      "hot_swappable": ["hot swappable", "hot-swap", "hot swap", "hotswappable"],
+      "key_count": ["key count", "teclas", "keys", "number of keys", "cantidad de teclas"],
+      "form_factor": ["form factor", "factor de forma", "size"],
+      "dimensions_mm": ["dimensions", "dimensiones"]
+    },
+    "headphones": {
+      "driver_size_mm": ["driver", "driver size", "tamano driver", "drivers", "driver mm"],
+      "connectivity": ["conectividad", "connection"],
+      "wireless": ["inalambrico", "wireless"],
+      "bluetooth": ["bluetooth", "bt"],
+      "microphone": ["microphone", "microfono", "mic", "boom mic"],
+      "noise_cancellation": ["noise cancellation", "cancelacion de ruido", "noise canceling"],
+      "active_noise_cancellation": ["anc", "active noise cancellation", "cancelacion activa de ruido"],
+      "battery_life_hours": ["battery life", "duracion bateria", "autonomia"],
+      "weight_g": ["weight", "peso"],
+      "frequency_response": ["frequency response", "respuesta en frecuencia", "frequency range"],
+      "impedance_ohm": ["impedance", "impedancia", "impedance ohm"]
+    },
+    "monitor": {
+      "screen_size_in": ["screen size", "tamano pantalla", "display size", "size"],
+      "resolution": ["resolution", "resolucion"],
+      "refresh_rate_hz": ["refresh rate", "tasa de refresco", "refresh rate hz"],
+      "response_time_ms": ["response time", "tiempo de respuesta", "response time ms"],
+      "panel_type": ["panel", "panel type", "tipo de panel"],
+      "aspect_ratio": ["aspect ratio", "relacion de aspecto"],
+      "brightness_nits": ["brightness", "brillo", "brightness nits", "cd/m2"],
+      "hdr": ["hdr", "high dynamic range"],
+      "adaptive_sync": ["adaptive sync", "freesync", "gsync", "g-sync", "free-sync", "vrr"],
+      "ports": ["ports", "puertos", "inputs", "conexiones"]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+# COMERCIAL-IA data pipeline configuration
+project:
+  name: commercial-ai-data
+  schema_version: "1.0"
+
+paths:
+  data_dir: data
+  raw_dir: data/raw
+  normalized_dir: data/normalized
+  rejected_dir: data/rejected
+  taxonomy_dir: data/taxonomy
+  derived_dir: data/derived
+  interactions_dir: data/interactions
+  sample_dir: data/sample
+  logs_dir: logs
+
+currency:
+  default: COP
+  allowed: [COP, USD, EUR]
+
+scraping:
+  respect_robots: true
+  rate_limit_seconds: 1.0
+  max_retries: 4
+  backoff_base_seconds: 1.5
+  cache_dir: data/.http_cache
+  user_agent: "commercial-ai-bot/0.1 (+contact: data-team@example.com)"
+
+pipeline:
+  state_file: data/.pipeline_state.json
+  sources:
+    - sample   # offline, clearly-labeled sample fixtures
+
+logging:
+  level: INFO
+  format: "%(asctime)s %(levelname)s %(name)s %(message)s"

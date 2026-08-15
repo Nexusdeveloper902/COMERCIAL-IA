@@ -1,0 +1,110 @@
+{
+  "_note": "SAMPLE fixtures for pipeline testing. source_kind='sample'. NOT real scraped data.",
+  "records": [
+    {
+      "source": { "url": "https://sample-store-a.example/product/logitech-g502x-plus", "domain": "sample-store-a.example", "scraped_at": "2026-08-15T20:00:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Mouse Logitech G502 X PLUS Inalámbrico RGB 25600 DPI",
+        "price_text": "$459.900",
+        "availability": "En stock",
+        "description": "Mouse gamer inalámbrico, sensor HERO 25600 DPI, 13 botones programables, RGB, ideal para gaming competitivo FPS.",
+        "specifications": {
+          "Peso": "106 g",
+          "DPI": "25600",
+          "Sensor": "óptico HERO",
+          "Tasa de sondeo": "1000 Hz",
+          "Botones": "13",
+          "Conectividad": "USB / Inalámbrico 2.4 GHz",
+          "Bluetooth": "No",
+          "RGB": "Sí",
+          "Modelo": "910-006765"
+        },
+        "images": ["https://sample-store-a.example/img/g502x-1.jpg"]
+      }
+    },
+    {
+      "source": { "url": "https://sample-store-b.example/mouse/logitech-g502x-plus", "domain": "sample-store-b.example", "scraped_at": "2026-08-15T20:05:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Logitech G502 X PLUS Wireless Gaming Mouse",
+        "price_text": "479900 COP",
+        "availability": "Disponible",
+        "description": "Ratón gaming inalámbrico 25600 DPI, lightweight.",
+        "specifications": {
+          "weight": "106 g",
+          "max dpi": "25600",
+          "polling rate hz": "1000",
+          "Modelo": "910-006765",
+          "Conectividad": "wireless 2.4 GHz"
+        },
+        "images": ["https://sample-store-b.example/img/g502x-2.jpg"]
+      }
+    },
+    {
+      "source": { "url": "https://sample-store-a.example/product/monitor-benq-xl2566k", "domain": "sample-store-a.example", "scraped_at": "2026-08-15T20:10:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Monitor BenQ Zowie XL2566K 360Hz DyAc 24.5\"",
+        "price_text": "$3.499.900",
+        "availability": "En stock",
+        "description": "Monitor gaming competitivo FPS, 360Hz, 0.5ms, DyAc.",
+        "specifications": {
+          "Tamano pantalla": "24.5 in",
+          "Resolucion": "1920x1080",
+          "Tasa de refresco": "360 Hz",
+          "Tiempo de respuesta": "0.5 ms",
+          "Panel": "TN",
+          "Brillo": "320 nits",
+          "Puertos": ["HDMI", "DisplayPort"]
+        },
+        "images": ["https://sample-store-a.example/img/xl2566k.jpg"]
+      }
+    },
+    {
+      "source": { "url": "https://sample-store-a.example/product/keyboard-razer-huntsman-v3-pro", "domain": "sample-store-a.example", "scraped_at": "2026-08-15T20:15:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Teclado Razer Huntsman V3 Pro Analog Optical Switch RGB",
+        "price_text": "$1.199.900",
+        "availability": "En stock",
+        "description": "Teclado mecánico gaming, switches ópticos analog, hot swappable, RGB, para gaming y programación.",
+        "specifications": {
+          "switch type": "Analog Optical",
+          "layout": "ES",
+          "hot-swap": "Sí",
+          "rgb": "Sí",
+          "key count": "104",
+          "Conectividad": "USB"
+        },
+        "images": ["https://sample-store-a.example/img/huntsman.jpg"]
+      }
+    },
+    {
+      "source": { "url": "https://sample-store-b.example/headphones/sony-wh1000xm5", "domain": "sample-store-b.example", "scraped_at": "2026-08-15T20:20:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Audífonos Sony WH-1000XM5 Bluetooth ANC",
+        "price_text": "$1.899.900",
+        "availability": "Disponible",
+        "description": "Auriculares over-ear inalámbricos con cancelación activa de ruido ANC, 30h batería, para música y travel.",
+        "specifications": {
+          "driver size": "30 mm",
+          "Conectividad": "Bluetooth",
+          "microphone": "Sí",
+          "anc": "Sí",
+          "battery life": "30 hours",
+          "weight": "250 g",
+          "frequency response": "4Hz-40kHz",
+          "impedance": "48 ohm"
+        },
+        "images": ["https://sample-store-b.example/img/wh1000xm5.jpg"]
+      }
+    },
+    {
+      "source": { "url": "https://sample-store-a.example/product/monitor-sin-precio", "domain": "sample-store-a.example", "scraped_at": "2026-08-15T20:25:00Z", "source_kind": "sample" },
+      "raw": {
+        "title": "Monitor Genérico 27 pulgadas",
+        "price_text": "Consultar",
+        "description": "Monitor office.",
+        "specifications": { "screen size": "27 in" },
+        "images": []
+      }
+    }
+  ]
+}

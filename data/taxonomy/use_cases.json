@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "use_cases": [
+    "gaming",
+    "competitive_gaming",
+    "fps",
+    "moba",
+    "office",
+    "productivity",
+    "content_creation",
+    "streaming",
+    "programming",
+    "music",
+    "travel",
+    "video_editing",
+    "photo_editing",
+    "casual"
+  ]
+}

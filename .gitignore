@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Env
+.venv/
+venv/
+.env
+
+# Pipeline runtime artifacts (regenerated per run; not source)
+data/.http_cache/
+data/.pipeline_state.json
+data/.pipeline_state.tmp
+logs/*.log
+
+# IDE
+.idea/
+.vscode/
