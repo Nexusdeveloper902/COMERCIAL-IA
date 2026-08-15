@@ -21,64 +21,58 @@
 
 ---
 
-## 2. MUST FIX before go-live
+## 2. MUST FIX before go-live — RESOLVED ✅
 
-### 2.1 No real source adapter — only `SampleSourceScraper`
-**Severity: blocking for actual data collection.**
-`config/config.yaml` only lists `sample`. The pipeline will run forever producing
-the same 6 sample records. Before "leaving the baby running", you need at least
-one **real** `BaseScraper` subclass for a public source you're permitted to use
-(e.g. a retailer JSON API, a public product catalog API, or an Open Data source).
-Until then, the Oracle box is collecting nothing new.
+### 2.1 No real source adapter — only `SampleSourceScraper` ✅ FIXED
+Added `BestBuyScraper` (`src/commercial_ai/scrapers/bestbuy.py`) using Best Buy's
+public [Products API](https://developer.bestbuy.com) — a legitimate, free,
+developer-facing API returning real product data (price, specs, UPC,
+manufacturer, model). No HTML scraping, no auth/CAPTCHA bypass. Registered in
+`config/config.yaml` (commented out by default; enable by uncommenting
+`- bestbuy` and providing `BBY_API_KEY`).
 
-**Action:** implement one real adapter and add its name to `pipeline.sources`.
+### 2.2 Raw JSONL unbounded growth / O(N²) re-reads ✅ FIXED
+Raw output is now **date-sharded** (`data/raw/raw_YYYYMMDD.jsonl`). The
+normalizer processes only **un-processed shards**, marking each done in
+`data/.pipeline_state.json` (new `processed_shards` state). A crash resumes from
+the next shard without re-processing old data.
 
-### 2.2 Raw JSONL is appended, not rotated — unbounded growth
-`collect_raw` opens `raw_latest.jsonl` in append mode (`"a"`). On a long-running
-box this file grows forever and the normalize stage re-reads the **entire** file
-every run (`read_jsonl(raw_path)` iterates all lines). At scale this becomes O(N²)
-across runs and slow.
-
-**Action (this PR):** the bootstrap script rotates logs, but raw JSONL should be
-sharded by date. Recommended follow-up: write to `data/raw/raw_YYYYMMDD.jsonl`
-and have the normalizer process only the latest shard (or track processed-line
-offsets in state). Flagged here; not blocking for small volumes.
-
-### 2.3 `product_id` collision risk when brand+model is the only key
-When no EAN/UPC/MPN exists, the fingerprint is `brand+model`. Two genuinely
-different products with the same brand+model string (e.g. "Logitech Mouse") would
-wrongly merge. Currently mitigated because model is often the MPN, but for real
-scrapes with weak model extraction this will silently over-merge.
-
-**Action:** tighten `_model_from_title` heuristics or require MPN for dedup when
-brand+model looks generic. Low risk for now, flagged for the first real adapter.
+### 2.3 `product_id` collision risk for generic brand+model ✅ FIXED
+`fingerprint()` now rejects generic model strings (bare category nouns like
+"Mouse"/"Teclado", and very short pure-letter tokens) via `_is_generic_model()`.
+The brand+model path is only used when the model contains a digit or is
+sufficiently specific. Covered by `test_fingerprint_rejects_generic_model`.
 
 ---
 
-## 3. SHOULD FIX soon
+## 3. SHOULD FIX soon — mostly RESOLVED ✅
 
-### 3.1 Normalize stage holds everything in RAM
-`run_pipeline` builds one `Deduplicator` and one `rejected` list in memory. Fine
-for thousands of records; problematic at hundreds of thousands. For the intended
-"leave it running" scale, consider streaming dedup with an on-disk index
-(SQLite/duckdb) keyed by fingerprint.
+### 3.1 Normalize stage holds everything in RAM ⚠️ PARTIAL
+`run_pipeline` still builds one `Deduplicator` and one `rejected` list in memory.
+Fine for tens of thousands of records; problematic at hundreds of thousands.
+For the intended school-project scale this is acceptable. Future: stream dedup
+with an on-disk index (SQLite/duckdb) keyed by fingerprint.
 
-### 3.2 No disk-space guard
-Nothing checks free disk before writing. A runaway scrape could fill the volume
-and crash the box. The bootstrap script could add a pre-run `df` check.
+### 3.2 No disk-space guard ✅ FIXED
+`run_pipeline` now checks free disk space before processing and raises
+`RuntimeError` if free space < `MIN_FREE_GB` (2 GB). The free GB is recorded in
+each run-history entry and `last_run_stats.json`.
 
-### 3.3 `last_run_stats.json` overwritten each run — no history
-I added a stats file for monitoring, but it's overwritten. For unattended ops you
-want a run history (append a line to `data/run_history.jsonl`) so you can see
-trends and detect stalls.
+### 3.3 `last_run_stats.json` overwritten — no history ✅ FIXED
+Run history now **appends** to `data/run_history.jsonl` (never overwritten) so
+you can see trends and detect stalls. `last_run_stats.json` is kept as a quick
+latest-snapshot for the `--status` command.
 
-### 3.4 No alerting on failure
-The systemd service is `Type=oneshot`; if it fails, nothing notifies you. At
-minimum configure `OnFailure=` to a notify unit, or ship logs to a sink.
+### 3.4 No alerting on failure ✅ FIXED
+The systemd service now has `OnFailure=` pointing to a
+`comercial-ai-pipeline-notify.service` unit that journals an error marker
+(extendable to email/webhook). Check failures with:
+`journalctl -t comercial-ai-notify -p err`.
 
-### 3.5 User-Agent contact is a placeholder
-`config.yaml` has `data-team@example.com`. Replace with a real contact before
-scraping real sites (politeness + some sites require it).
+### 3.5 User-Agent contact is a placeholder ⚠️ REMAINS
+`config.yaml` still has `data-team@example.com`. Replace with a real contact
+before scraping real sites at volume. Low priority for a school project using
+the API (Best Buy's API doesn't rely on the User-Agent for politeness).
 
 ---
 
@@ -126,6 +120,8 @@ scraping real sites (politeness + some sites require it).
 - syncs the repo to `/opt/comercial-ia`, creates a venv, installs deps
 - runs the test suite as a smoke gate before scheduling
 - installs a **systemd timer** (every 6h by default; `CAI_POLL_INTERVAL_MIN` env override)
+- wires a **failure notifier** (`OnFailure=` → `comercial-ai-pipeline-notify.service`)
+- injects an optional **Best Buy API key** via a root-owned `EnvironmentFile=`
 - sets up logrotate
 - `--max-products N` / `-m N` caps how many NEW records each run collects
 - `--no-timer` for manual-only, `--status` for a quick health check
@@ -137,9 +133,49 @@ sudo bash scripts/bootstrap_oracle.sh -m 2000
 # rerun anytime to update code/deps (safe)
 sudo bash scripts/bootstrap_oracle.sh -m 2000
 
-# health check
+# health check (timer status + last run stats)
 sudo bash scripts/bootstrap_oracle.sh --status
 
 # stop the auto-run
 sudo systemctl disable --now comercial-ai-pipeline.timer
+```
+
+### Enabling the Best Buy API key on the Oracle box
+
+The key is injected via a root-owned env file (never committed to the repo):
+
+```bash
+# create the env file (root-only readable)
+sudo sh -c 'echo "BBY_API_KEY=your_real_api_key_here" > /opt/comercial-ia/.env.runtime'
+sudo chmod 600 /opt/comercial-ia/.env.runtime
+sudo chown root:root /opt/comercial-ia/.env.runtime
+
+# enable the bestbuy source in config
+sudo sed -i 's/^# - bestbuy/    - bestbuy/' /opt/comercial-ia/config/config.yaml
+
+# trigger a manual run to verify
+sudo systemctl start comercial-ai-pipeline.service
+sudo tail -f /opt/comercial-ia/logs/pipeline.log
+```
+
+### Monitoring commands cheat-sheet
+
+```bash
+# last run snapshot
+cat /opt/comercial-ia/data/last_run_stats.json
+
+# full run history (one JSON per line)
+cat /opt/comercial-ia/data/run_history.jsonl | python -m json.tool --json-lines
+
+# recent pipeline logs
+tail -100 /opt/comercial-ia/logs/pipeline.log
+
+# error logs only
+tail -100 /opt/comercial-ia/logs/pipeline.err.log
+
+# failure notifier journal entries
+journalctl -t comercial-ai-notify -p err --since "1 day ago"
+
+# timer schedule
+systemctl list-timers comercial-ai-pipeline.timer
 ```

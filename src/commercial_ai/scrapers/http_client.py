@@ -11,6 +11,7 @@ Safety:
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import time
 from pathlib import Path
@@ -113,3 +114,16 @@ class HttpClient:
                             attempt, self.max_retries, url, e, wait)
                 time.sleep(wait)
         raise RuntimeError(f"failed to fetch {url} after {self.max_retries} attempts: {last_err}")
+
+    def get_json(self, url: str, use_cache: bool = True) -> dict[str, Any] | None:
+        """Fetch URL and parse as JSON. Returns None on fetch failure."""
+        try:
+            text = self.get(url, use_cache=use_cache)
+        except Exception as e:  # noqa: BLE001
+            log.error("get_json fetch failed for %s: %s", url, e)
+            return None
+        try:
+            return json.loads(text)
+        except Exception as e:  # noqa: BLE001
+            log.error("get_json parse failed for %s: %s", url, e)
+            return None

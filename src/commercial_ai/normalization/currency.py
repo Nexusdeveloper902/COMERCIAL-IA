@@ -13,10 +13,13 @@ import re
 from typing import Any
 
 _CURRENCY_TOKENS = {
-    "cop": "COP", "$": "COP", "colombiano": "COP",
+    "cop": "COP", "colombiano": "COP",
     "usd": "USD", "u$": "USD", "dolares": "USD", "dollar": "USD",
     "eur": "EUR", "euros": "EUR", "€": "EUR",
 }
+# NOTE: bare "$" is intentionally NOT mapped — it's ambiguous (COP and USD both
+# use it). The caller's default_currency decides; explicit tokens (cop/usd/etc.)
+# still override when present in the text.
 
 
 def _looks_like_group_decimal(dot: int, comma: int) -> tuple[str, str]:

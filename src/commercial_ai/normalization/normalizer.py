@@ -48,32 +48,53 @@ class Normalizer:
         images = raw.get("images") or []
 
         # --- category / subcategory --------------------------------------
-        category = raw.get("category") or infer_category(title, description)
+        # Best Buy adapter passes a reliable category hint in _bby_category_hint.
+        category = raw.get("category") or raw.get("_bby_category_hint") or infer_category(title, description)
         if category and not self.taxonomy.is_valid_category(category):
             # If inferred but not in taxonomy, fall back to None (validator will reject).
             category = None
         subcategory = infer_subcategory(category, title, description) if category else None
 
         # --- brand / model -----------------------------------------------
-        brand = normalize_brand(raw.get("brand")) or detect_brand_in_text(title) or detect_brand_in_text(description)
-        model = (raw.get("model") or self._model_from_specs(specs) or self._model_from_title(title))
+        # Best Buy adapter provides manufacturer / modelNumber directly.
+        brand = (normalize_brand(raw.get("brand"))
+                 or normalize_brand(raw.get("_bby_manufacturer"))
+                 or detect_brand_in_text(title)
+                 or detect_brand_in_text(description))
+        model = (raw.get("model")
+                 or raw.get("_bby_model_number")
+                 or self._model_from_specs(specs)
+                 or self._model_from_title(title))
         if model:
             model = str(model).strip() or None
 
         # --- identifiers --------------------------------------------------
-        mpn = str(specs.get("Modelo") or specs.get("model") or raw.get("mpn") or "").strip() or None
+        mpn = (raw.get("mpn")
+               or raw.get("_bby_model_number")
+               or specs.get("Modelo") or specs.get("model")
+               or "")
+        mpn = str(mpn).strip() or None
         ean = str(raw.get("ean") or specs.get("EAN") or "").strip() or None
-        upc = str(raw.get("upc") or specs.get("UPC") or "").strip() or None
-        sku = str(raw.get("sku") or "").strip() or None
+        upc = (raw.get("upc")
+               or raw.get("_bby_upc")
+               or specs.get("UPC")
+               or "")
+        upc = str(upc).strip() or None
+        sku = (raw.get("sku") or raw.get("_bby_sku") or "")
+        sku = str(sku).strip() or None
 
         # --- specs --------------------------------------------------------
         canonical_specs, extra_specs = self.spec_normalizer.normalize(category, specs)
 
         # --- price / offer -----------------------------------------------
-        parsed = parse_price(price_text, self.default_currency)
+        # Source-supplied currency wins (e.g. Best Buy = USD) over the default.
+        source_currency = raw.get("currency") or self.default_currency
+        parsed = parse_price(price_text, source_currency)
         price = Price(value=(parsed["value"] if parsed else None),
-                      currency=(parsed["currency"] if parsed else self.default_currency))
-        availability = normalize_availability(raw.get("availability"))
+                      currency=(parsed["currency"] if parsed else source_currency))
+        # Best Buy availability strings: "Available" / "Sold Out" / "Pre-Sale" etc.
+        avail_raw = raw.get("availability") or raw.get("_bby_availability")
+        availability = normalize_availability(avail_raw)
         seller_name = raw.get("seller_name") or raw_record.source.domain
         seller_url = raw.get("seller_url") or raw_record.source.url
 

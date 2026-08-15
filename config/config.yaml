@@ -30,6 +30,12 @@ pipeline:
   state_file: data/.pipeline_state.json
   sources:
     - sample   # offline, clearly-labeled sample fixtures
+    # - bestbuy  # real public Best Buy Products API (set BBY_API_KEY env to enable)
+
+# Best Buy Products API (https://developer.bestbuy.com).
+# Prefer the BBY_API_KEY env var; only put the key here for local dev, never commit it.
+bestbuy:
+  api_key: null
 
 logging:
   level: INFO

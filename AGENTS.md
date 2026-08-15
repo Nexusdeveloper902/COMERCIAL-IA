@@ -30,11 +30,36 @@ engine is explicitly out of scope for this phase.
 - Dedup: `src/commercial_ai/deduplication/deduper.py`
 - Pipeline orchestration: `src/commercial_ai/pipelines/{collect,normalize_pipeline,cli}.py`
 - Derived ML flattening: `src/commercial_ai/derived/ml_features.py`
+- Scrapers: `src/commercial_ai/scrapers/{base,http_client,sample_source,bestbuy}.py`
 - Design doc (12 deliverables): `DESIGN.md`
+- Audit (pre-launch findings + Oracle recs): `AUDIT.md`
+- Oracle bootstrap (rerunnable): `scripts/bootstrap_oracle.sh`
+
+## Real source: Best Buy
+- `BestBuyScraper` uses Best Buy's public Products API (free key via BBY_API_KEY env).
+- Raw fields prefixed `_bby_*` (sku, upc, manufacturer, model_number, category_hint, availability).
+- Normalizer maps these: `_bby_upc`→upc, `_bby_manufacturer`→brand, `_bby_model_number`→mpn/model,
+  `_bby_category_hint`→category, `raw["currency"]`→price currency (USD for Best Buy).
+- Config: uncomment `- bestbuy` under `pipeline.sources` in `config/config.yaml`.
+
+## Raw processing (incremental, sharded)
+- Raw files are date-sharded: `data/raw/raw_YYYYMMDD.jsonl` (NOT a single growing file).
+- `PipelineState` tracks `processed_shards`; normalizer processes only un-processed shards.
+- `run_pipeline(raw_path=None)` → incremental shard mode; `run_pipeline(raw_path=X)` → single file (tests).
+- Disk guard: aborts if free space < 2 GB (`MIN_FREE_GB`).
+- Run history appended to `data/run_history.jsonl`; latest snapshot in `data/last_run_stats.json`.
 
 ## Currency parsing note
 Colombian format: `.`/`,` as group separators (e.g. `$499.900` = 499900 COP). When both
-separators present, rightmost = decimal. See `normalization/currency.py`.
+separators present, rightmost = decimal. Bare `$` is NOT mapped to any currency (ambiguous
+COP/USD) — the caller's `default_currency` decides; explicit tokens (cop/usd/eur) override.
+Source-supplied `raw["currency"]` (e.g. "USD" for Best Buy) wins over the config default.
+See `normalization/currency.py`.
+
+## Fingerprint safety
+`fingerprint()` rejects generic models (bare nouns like "Mouse"/"Teclado", short pure-letter
+tokens) via `_is_generic_model()` — brand+model path only used when model has a digit.
+Prevents over-merging unrelated products. Priority: GTIN (ean/upc) > mpn+brand > brand+model.
 
 ## Spanish text matching
 Use accent-insensitive comparison for Spanish terms (inalámbrico etc.). Helper:

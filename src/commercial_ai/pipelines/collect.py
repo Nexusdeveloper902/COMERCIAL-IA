@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -20,21 +21,28 @@ def _raw_key(record: RawRecord) -> str:
     return hashlib.sha1(base.encode("utf-8")).hexdigest()[:16]
 
 
+def _shard_name() -> str:
+    """Date-stamped shard name so raw files rotate daily and stay bounded."""
+    return "raw_" + datetime.now(timezone.utc).strftime("%Y%m%d") + ".jsonl"
+
+
 def collect_raw(
     scrapers: Iterable[BaseScraper],
     raw_dir: str | Path,
     state: PipelineState,
     max_products: int | None = None,
 ) -> Path:
-    """Run all scrapers, writing raw records to a dated JSONL file.
+    """Run all scrapers, writing raw records to a date-sharded JSONL file.
 
     Resumable: already-seen URLs and already-processed raw keys are skipped.
-    If ``max_products`` is set, collection stops after that many NEW records
-    in this run (existing state is still preserved).
+    Raw files are sharded by date (``raw_YYYYMMDD.jsonl``) so they stay bounded
+    and the normalizer processes only un-processed shards.
+    If ``max_products`` is set (>0), collection stops after that many NEW records
+    in this run (existing state is still preserved). 0 = unlimited.
     """
     raw_dir = Path(raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
-    out_path = raw_dir / "raw_latest.jsonl"
+    out_path = raw_dir / _shard_name()
     count = 0
     with JsonlWriter(out_path) as writer:
         for scraper in scrapers:

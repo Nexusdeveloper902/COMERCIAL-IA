@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -202,6 +203,28 @@ def _norm_token(s: str | None) -> str:
     return " ".join(str(s).lower().strip().split())
 
 
+def _is_generic_model(model: str, brand: str | None) -> bool:
+    """Heuristic: model strings that are too weak to safely dedup on brand+model.
+
+    Rejects bare category nouns and very short tokens that would cause
+    over-merging of unrelated products from different sources.
+    """
+    m = model.strip().lower()
+    if not m:
+        return True
+    generic = {
+        "mouse", "teclado", "keyboard", "monitor", "pantalla", "audifonos",
+        "headphones", "headset", "auriculares", "generico", "generic",
+        "cable", "usb", "hdmi", "cargador", "adapter", "mouse gaming",
+    }
+    if m in generic:
+        return True
+    # MPN-like codes contain a digit; pure letters of <=4 chars are suspect
+    if not re.search(r"\d", m) and len(m) <= 4:
+        return True
+    return False
+
+
 def fingerprint(
     category: str,
     brand: str | None,
@@ -213,6 +236,9 @@ def fingerprint(
     """Return a stable identity fingerprint, or None if identity is insufficient.
 
     Priority: GTIN (ean/upc) > mpn+brand > brand+model.
+    The brand+model path is only used when the model is sufficiently specific
+    (contains a digit / is MPN-like); generic models yield None so we do NOT
+    risk over-merging unrelated products.
     """
     ean = _norm_token(ean)
     upc = _norm_token(upc)
@@ -227,7 +253,7 @@ def fingerprint(
         key = f"gtin:{upc}"
     elif mpn and brand:
         key = f"mpn:{brand}:{mpn}"
-    elif brand and model:
+    elif brand and model and not _is_generic_model(model, brand):
         key = f"bm:{brand}:{model}"
     else:
         return None  # insufficient identity -> cannot safely dedup

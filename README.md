@@ -78,11 +78,25 @@ if they're absent; JSONL+CSV are always produced.
 python scripts/run_pipeline.py
 # or
 commercial-ai-pipeline
+# cap how many NEW raw records to collect this run:
+python scripts/run_pipeline.py --max-products 1000
+# 0 = unlimited:
+python scripts/run_pipeline.py --max-products 0
 # reuse existing raw jsonl without re-scraping:
 python scripts/run_pipeline.py --skip-collect
 ```
 
-Outputs are written under `data/` and a stats summary is printed.
+Outputs are written under `data/` and a stats summary is printed. Each run also
+appends an entry to `data/run_history.jsonl` (never overwritten) and writes a
+latest snapshot to `data/last_run_stats.json` for monitoring.
+
+### Raw processing is incremental
+
+Raw files are **date-sharded** (`data/raw/raw_YYYYMMDD.jsonl`) so they stay
+bounded. The normalizer processes only **un-processed shards**, marking each
+done in `data/.pipeline_state.json`, so a crash resumes from the next shard
+without re-processing. A disk-space guard aborts the run if free space drops
+below 2 GB.
 
 ## Key guarantees
 
@@ -108,6 +122,24 @@ Outputs are written under `data/` and a stats summary is printed.
 3. Register it in `config/config.yaml` under `pipeline.sources`.
 
 Normalization, validation, and dedup are source-agnostic and shared.
+
+### Real source: Best Buy Products API
+
+`BestBuyScraper` (`src/commercial_ai/scrapers/bestbuy.py`) uses Best Buy's public
+[Products API](https://developer.bestbuy.com) — a free, developer-facing API
+returning real product data (prices, specs, UPC, manufacturer, model). It is a
+legitimate API (no HTML scraping, no auth/CAPTCHA bypass).
+
+To enable it:
+1. Register at <https://developer.bestbuy.com> and get a free API key.
+2. Provide the key via the env var `BBY_API_KEY` (preferred — the Oracle
+   bootstrap script injects it via a root-owned `EnvironmentFile=`), or set
+   `bestbuy.api_key` in `config/config.yaml` for local dev (never commit it).
+3. Uncomment `- bestbuy` under `pipeline.sources` in `config/config.yaml`.
+
+The adapter searches Best Buy's categories for our four product types, paginates
+through results, and yields raw records. The shared normalizer maps Best Buy
+fields (`_bby_upc` → `upc`, `_bby_manufacturer` → `brand`, `currency: USD`, etc.).
 
 ## Adding a new category
 

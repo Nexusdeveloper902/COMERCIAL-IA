@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from ..config import ensure_dirs, load_config, setup_logging
-from ..scrapers import HttpClient, SampleSourceScraper
+from ..scrapers import BestBuyScraper, HttpClient, SampleSourceScraper
 from .collect import collect_raw
 from .normalize_pipeline import run_pipeline
 
@@ -27,6 +27,9 @@ def build_scrapers(cfg: dict) -> list:
     for name in cfg["pipeline"]["sources"]:
         if name == "sample":
             scrapers.append(SampleSourceScraper(sample_dir=cfg["paths"]["sample_dir"], http_client=http))
+        elif name == "bestbuy":
+            api_key = cfg.get("bestbuy", {}).get("api_key")
+            scrapers.append(BestBuyScraper(api_key=api_key, http_client=http))
         else:
             logging.getLogger("commercial_ai").warning("unknown source '%s' (skipping)", name)
     return scrapers

@@ -166,15 +166,30 @@ if [[ "${INSTALL_TIMER}" -eq 1 ]]; then
 Description=COMERCIAL-IA product data pipeline
 After=network-online.target
 Wants=network-online.target
+# On failure, start the notify unit (logs a journal marker you can alert on).
+OnFailure=${SERVICE_NAME}-notify.service
 
 [Service]
 Type=oneshot
 User=${APP_USER}
 WorkingDirectory=${APP_DIR}
 Environment=PYTHONUNBUFFERED=1
+# Optional Best Buy API key injected via a root-owned env file (never in the repo).
+# Create /opt/comercial-ia/.env.runtime (chmod 600 root) with: BBY_API_KEY=...
+EnvironmentFile=-${APP_DIR}/.env.runtime
 ExecStart=${VENV_DIR}/bin/python ${APP_DIR}/scripts/run_pipeline.py --max-products ${MAX_PRODUCTS}
 StandardOutput=append:${APP_DIR}/logs/pipeline.log
 StandardError=append:${APP_DIR}/logs/pipeline.err.log
+EOF
+
+  # Failure-notify unit: extendable to email/webhook later. For now it journals a marker.
+  cat > "/etc/systemd/system/${SERVICE_NAME}-notify.service" <<EOF
+[Unit]
+Description=COMERCIAL-IA pipeline failure notifier
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo "COMERCIAL-IA pipeline FAILED at $$(date -Is); check ${APP_DIR}/logs/pipeline.err.log" | systemd-cat -t comercial-ai-notify -p err'
 EOF
 
   cat > "/etc/systemd/system/${TIMER_NAME}" <<EOF
