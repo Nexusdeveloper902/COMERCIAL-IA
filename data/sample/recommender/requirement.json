@@ -1,0 +1,30 @@
+{
+  "request_id": "req_001",
+  "raw_text": "quiero un mouse gamer inalámbrico para FPS competitivo, liviano, con buen sensor, máximo 300 mil pesos",
+  "interpreted_at": "2026-08-15T21:00:00Z",
+  "category": "mouse",
+  "subcategory": "gaming_mouse",
+  "budget": {
+    "min": null,
+    "max": 300000,
+    "currency": "COP",
+    "max_cop": 300000
+  },
+  "use_cases": ["gaming", "competitive_gaming", "fps"],
+  "required_features": ["wireless", "gaming_sensor"],
+  "preferred_features": ["rgb", "lightweight"],
+  "constraints": {
+    "min_sensor_dpi": 12000,
+    "max_weight_g": 110,
+    "min_polling_rate_hz": 1000
+  },
+  "importance": {
+    "performance": 1.0,
+    "price": 0.8,
+    "ergonomics": 0.7,
+    "portability": 0.6,
+    "aesthetics": 0.2,
+    "durability": 0.5
+  },
+  "confidence": 0.9
+}

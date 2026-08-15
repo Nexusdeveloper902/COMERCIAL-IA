@@ -45,6 +45,8 @@ commercial-ai-data/
 │   ├── validation/          # rule-based validator → pass/reject
 │   ├── deduplication/       # identity fingerprint + multi-seller offer merging
 │   ├── storage/             # incremental JSONL writer + resumable pipeline state
+│   ├── recommender/         # training-example schema (Requirement, Interaction,
+│   │                        # Compatibility, TrainingExample) — derivation only, no model
 │   ├── derived/             # ML feature flattening (labeled "derived")
 │   └── pipelines/           # collect + normalize_pipeline + CLI
 ├── data/
@@ -52,14 +54,16 @@ commercial-ai-data/
 │   ├── normalized/          # products.jsonl
 │   ├── rejected/            # *.jsonl (+ reason)
 │   ├── taxonomy/            # categories, subcategories, use_cases, features,
-│   │                        # connectivity_types, spec_names, units
+│   │                        # connectivity_types, spec_names, units, requirement_dimensions
 │   ├── interactions/        # reserved for future interactions
 │   ├── derived/             # ml_features.{jsonl,csv,parquet} (derived=true)
-│   └── sample/              # clearly-labeled sample fixtures (NOT real scraped data)
+│   └── sample/              # sample fixtures + recommender/ (requirement, interaction, training_example)
 ├── tests/                   # unit + integration
 ├── scripts/run_pipeline.py
 ├── config/config.yaml
 ├── DESIGN.md                # 12 required design deliverables
+├── RECOMMENDER.md           # training-example schema (Requirement + Product + Interaction -> one ML row)
+├── AUDIT.md                 # pre-launch audit findings + resolutions
 └── pyproject.toml
 ```
 
@@ -199,4 +203,6 @@ Customer → LLM → Structured Requirements → Candidate Filtering
 → ML Recommendation/Ranking → Top Products → LLM Explanation → Customer
 ```
 
-No ML predictions are generated in this phase. See `DESIGN.md` §12.
+No ML predictions are generated in this phase. See `DESIGN.md` §12 and `RECOMMENDER.md`
+for the locked-down training-example schema (`Requirement + Product + Interaction ->
+TrainingExample`), which tells us exactly what behavioral data to collect next.

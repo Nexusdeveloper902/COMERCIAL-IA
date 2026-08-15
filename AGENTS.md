@@ -77,3 +77,26 @@ Prevents over-merging unrelated products. Priority: GTIN (ean/upc) > mpn+brand >
 Use accent-insensitive comparison for Spanish terms (inalámbrico etc.). Helper:
 `commercial_ai.normalization.specs._deaccent`. Brand detection scans title text via
 `detect_brand_in_text` (taking the first title word is unreliable — it's often a category noun).
+
+## Recommender schema layer (src/commercial_ai/recommender/)
+Defines what a training example looks like — schema + derivation only, NO model.
+- `Requirement` (LLM output): category, budget (original + max_cop), required_features
+  (hard), preferred_features (soft), constraints (min_/max_-prefixed specs), importance
+  (per-dimension weights 0..1), confidence.
+- `Interaction`: ties product_id to requirement_id (CRUCIAL — meaningful only relative
+  to its request). event_type -> suitability: purchase=1.0, add_to_cart=0.7, click=0.4,
+  view=0.2, reject=0.0, rating=explicit. label_source = real_interaction|synthetic|heuristic
+  (synthetic NEVER passed as real).
+- `Compatibility` (derived): requirement intersection product. CRITICAL "unknown != false"
+  rule: missing product spec -> null (not False); only explicit violation -> False and
+  fails passes_hard_filter. Prevents discarding valid candidates for missing data.
+- `TrainingExample`: build_training_example(req, product, interaction). example_id =
+  deterministic hash of (request_id|product_id|interaction_id). suitability = label from
+  interaction (NOT a prediction). derived=true.
+- Budget comparison uses best_price_cop (cross-currency). Constraint keys: min_X means
+  product.X >= threshold; max_X means product.X <= threshold.
+- Taxonomy: data/taxonomy/requirement_dimensions.json (price, performance, ergonomics,
+  portability, aesthetics, durability, audio_quality, visual_quality, connectivity, noise_cancellation).
+- Fixtures: data/sample/recommender/{requirement,interaction,training_example}.json
+- See RECOMMENDER.md for full design. This bridges to future: Requirement -> hard-filter
+  (passes_hard_filter) -> ML ranking (compatibility + importance) -> LLM explanation.

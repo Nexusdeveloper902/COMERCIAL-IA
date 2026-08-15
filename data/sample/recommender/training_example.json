@@ -1,0 +1,168 @@
+{
+  "derived": true,
+  "example_id": "ex_88f319cf0115d18e",
+  "request_id": "req_001",
+  "product_id": "mouse_d4658c5bdf388725",
+  "customer_id": "cust_anon_42",
+  "requirement": {
+    "request_id": "req_001",
+    "raw_text": "quiero un mouse gamer inalámbrico para FPS competitivo, liviano, con buen sensor, máximo 300 mil pesos",
+    "interpreted_at": "2026-08-15T21:00:00Z",
+    "category": "mouse",
+    "subcategory": "gaming_mouse",
+    "budget": {
+      "min": null,
+      "max": 300000,
+      "currency": "COP",
+      "max_cop": 300000
+    },
+    "use_cases": [
+      "gaming",
+      "competitive_gaming",
+      "fps"
+    ],
+    "required_features": [
+      "wireless",
+      "gaming_sensor"
+    ],
+    "preferred_features": [
+      "rgb",
+      "lightweight"
+    ],
+    "constraints": {
+      "min_sensor_dpi": 12000,
+      "max_weight_g": 110,
+      "min_polling_rate_hz": 1000
+    },
+    "importance": {
+      "performance": 1.0,
+      "price": 0.8,
+      "ergonomics": 0.7,
+      "portability": 0.6,
+      "aesthetics": 0.2,
+      "durability": 0.5
+    },
+    "confidence": 0.9
+  },
+  "product": {
+    "product_id": "mouse_d4658c5bdf388725",
+    "identity": {
+      "name": "Mouse Logitech G502 X PLUS",
+      "brand": "Logitech",
+      "model": "910-006765",
+      "category": "mouse",
+      "subcategory": "gaming_mouse"
+    },
+    "identifiers": {
+      "sku": null,
+      "ean": null,
+      "upc": "09785512345",
+      "mpn": "910-006765"
+    },
+    "commerce": {
+      "offers": [
+        {
+          "seller": {
+            "name": "store-a",
+            "url": "https://a"
+          },
+          "price": {
+            "value": 459900,
+            "currency": "COP"
+          },
+          "price_cop": {
+            "value": 459900,
+            "currency": "COP"
+          },
+          "availability": "in_stock",
+          "stock_quantity": null,
+          "source": {
+            "url": "https://a",
+            "domain": "a",
+            "scraped_at": "2026-08-15T20:00:00Z",
+            "source_kind": "scraped"
+          }
+        }
+      ],
+      "best_price": {
+        "value": 459900,
+        "currency": "COP"
+      },
+      "best_price_cop": {
+        "value": 459900,
+        "currency": "COP"
+      }
+    },
+    "description": {},
+    "specifications": {
+      "weight_g": 106,
+      "sensor_dpi": 25600,
+      "sensor_type": "optical",
+      "polling_rate_hz": 1000,
+      "buttons": 13,
+      "wireless": true,
+      "bluetooth": false
+    },
+    "specifications_extra": {},
+    "use_cases": [
+      "gaming",
+      "competitive_gaming",
+      "fps"
+    ],
+    "features": [
+      "wireless",
+      "gaming_sensor",
+      "rgb",
+      "lightweight"
+    ],
+    "media": {},
+    "source": {
+      "url": "https://a",
+      "domain": "a",
+      "scraped_at": "2026-08-15T20:00:00Z",
+      "source_kind": "scraped"
+    },
+    "schema_version": "1.0"
+  },
+  "compatibility": {
+    "category_match": true,
+    "meets_budget": false,
+    "meets_required_features": [
+      "wireless",
+      "gaming_sensor"
+    ],
+    "missing_required_features": [],
+    "violated_required_features": [],
+    "meets_constraints": {
+      "min_sensor_dpi": true,
+      "max_weight_g": true,
+      "min_polling_rate_hz": true
+    },
+    "use_case_overlap": [
+      "competitive_gaming",
+      "fps",
+      "gaming"
+    ],
+    "preferred_feature_count": 2,
+    "preferred_feature_total": 2,
+    "passes_hard_filter": false
+  },
+  "interaction": {
+    "interaction_id": "int_001",
+    "customer_id": "cust_anon_42",
+    "product_id": "mouse_d4658c5bdf388725",
+    "requirement_id": "req_001",
+    "event_type": "purchase",
+    "timestamp": "2026-08-15T21:05:00Z",
+    "rating": null,
+    "context": {
+      "position": 1,
+      "session": "sess_abc",
+      "candidate_set_size": 5
+    },
+    "explicit_feedback": null,
+    "label_source": "real_interaction"
+  },
+  "suitability": 1.0,
+  "label_source": "real_interaction"
+}
