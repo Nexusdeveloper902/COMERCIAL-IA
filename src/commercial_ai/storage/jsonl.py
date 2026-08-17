@@ -2,7 +2,11 @@
 
 * Each record is one self-contained JSON line, flushed immediately, so a crash
   leaves a valid (partial) JSONL file.
-* Lines are never rewritten in place; the file is append-only.
+* By default the file is append-only (suitable for raw collection and run
+  history — true append-only logs).
+* Pass ``truncate=True`` for regenerated *views* (normalized products, rejected,
+  derived ML) so each run produces a fresh file rather than accumulating stale
+  duplicate rows. Truncation happens atomically at open time.
 """
 from __future__ import annotations
 
@@ -12,9 +16,12 @@ from typing import Any, Iterator
 
 
 class JsonlWriter:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, truncate: bool = False):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        # "a" preserves append-only semantics; truncate empties the file first.
+        if truncate and self.path.exists():
+            self.path.unlink()
         self._fh = open(self.path, "a", encoding="utf-8")
 
     def write(self, record: dict[str, Any]) -> None:

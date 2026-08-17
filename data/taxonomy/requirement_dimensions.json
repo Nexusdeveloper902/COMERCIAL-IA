@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "description": "Importance dimensions a customer can weight (0..1) when expressing a requirement. Used by the LLM to encode 'I care a lot about performance, less about aesthetics' and by the ML ranker to weight compatibility features per-customer.",
+  "dimensions": [
+    {
+      "name": "price",
+      "description": "Sensitivity to staying within budget / finding a good deal"
+    },
+    {
+      "name": "performance",
+      "description": "Speed, DPI, refresh rate, response time, polling rate"
+    },
+    {
+      "name": "ergonomics",
+      "description": "Comfort, weight, layout, adjustability for long sessions"
+    },
+    {
+      "name": "portability",
+      "description": "Wireless, battery life, size, travel-friendliness"
+    },
+    {
+      "name": "aesthetics",
+      "description": "RGB, backlight, design, color"
+    },
+    {
+      "name": "durability",
+      "description": "Build quality, switch lifespan, warranty, materials"
+    },
+    {
+      "name": "audio_quality",
+      "description": "Driver size, frequency response, ANC, impedance (headphones)"
+    },
+    {
+      "name": "visual_quality",
+      "description": "Resolution, color accuracy, brightness, HDR (monitors)"
+    },
+    {
+      "name": "connectivity",
+      "description": "Ports, Bluetooth, wireless, hot-swap, multi-device"
+    },
+    {
+      "name": "noise_cancellation",
+      "description": "ANC performance (headphones)"
+    }
+  ]
+}

@@ -18,6 +18,13 @@ currency:
   default: COP
   allowed: [COP, USD, EUR]
 
+# FX conversion: fetch real USD->COP rates, keep original price AND add price_cop.
+# Free no-key API (open.er-api.com); cached with TTL; static fallback if offline.
+fx:
+  rates_url: "https://open.er-api.com/v6/latest/USD"
+  fallback_usd_cop: 4100.0   # used only if the API is down and no cache exists
+  ttl_seconds: 86400         # refresh rates once per day
+
 scraping:
   respect_robots: true
   rate_limit_seconds: 1.0
@@ -30,6 +37,12 @@ pipeline:
   state_file: data/.pipeline_state.json
   sources:
     - sample   # offline, clearly-labeled sample fixtures
+    # - bestbuy  # real public Best Buy Products API (set BBY_API_KEY env to enable)
+
+# Best Buy Products API (https://developer.bestbuy.com).
+# Prefer the BBY_API_KEY env var; only put the key here for local dev, never commit it.
+bestbuy:
+  api_key: null
 
 logging:
   level: INFO

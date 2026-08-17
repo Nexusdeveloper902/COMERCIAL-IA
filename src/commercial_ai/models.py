@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -90,7 +91,12 @@ class Price:
 
 @dataclass
 class Offer:
-    """A single seller offer. A canonical product may have many offers."""
+    """A single seller offer. A canonical product may have many offers.
+
+    ``price`` is always the original source currency (preserved verbatim).
+    ``price_cop`` is a derived conversion to COP for cross-source comparison
+    (added by the FX step; None when price is missing or conversion unavailable).
+    """
 
     seller_name: str
     seller_url: str
@@ -98,11 +104,13 @@ class Offer:
     availability: str  # in_stock|out_of_stock|preorder|unknown
     stock_quantity: int | None = None
     source: SourceRef | None = None
+    price_cop: Price | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "seller": {"name": self.seller_name, "url": self.seller_url},
             "price": self.price.to_dict(),
+            "price_cop": self.price_cop.to_dict() if self.price_cop else None,
             "availability": self.availability,
             "stock_quantity": self.stock_quantity,
             "source": self.source.to_dict() if self.source else None,
@@ -139,6 +147,7 @@ class CanonicalProduct:
     identifiers: Identifiers
     offers: list[Offer] = field(default_factory=list)
     best_price: Price | None = None
+    best_price_cop: Price | None = None
     description: dict[str, Any] = field(default_factory=dict)
     specifications: dict[str, Any] = field(default_factory=dict)
     specifications_extra: dict[str, Any] = field(default_factory=dict)
@@ -156,6 +165,7 @@ class CanonicalProduct:
             "commerce": {
                 "offers": [o.to_dict() for o in self.offers],
                 "best_price": self.best_price.to_dict() if self.best_price else None,
+                "best_price_cop": self.best_price_cop.to_dict() if self.best_price_cop else None,
             },
             "description": self.description,
             "specifications": self.specifications,
@@ -202,6 +212,28 @@ def _norm_token(s: str | None) -> str:
     return " ".join(str(s).lower().strip().split())
 
 
+def _is_generic_model(model: str, brand: str | None) -> bool:
+    """Heuristic: model strings that are too weak to safely dedup on brand+model.
+
+    Rejects bare category nouns and very short tokens that would cause
+    over-merging of unrelated products from different sources.
+    """
+    m = model.strip().lower()
+    if not m:
+        return True
+    generic = {
+        "mouse", "teclado", "keyboard", "monitor", "pantalla", "audifonos",
+        "headphones", "headset", "auriculares", "generico", "generic",
+        "cable", "usb", "hdmi", "cargador", "adapter", "mouse gaming",
+    }
+    if m in generic:
+        return True
+    # MPN-like codes contain a digit; pure letters of <=4 chars are suspect
+    if not re.search(r"\d", m) and len(m) <= 4:
+        return True
+    return False
+
+
 def fingerprint(
     category: str,
     brand: str | None,
@@ -213,6 +245,9 @@ def fingerprint(
     """Return a stable identity fingerprint, or None if identity is insufficient.
 
     Priority: GTIN (ean/upc) > mpn+brand > brand+model.
+    The brand+model path is only used when the model is sufficiently specific
+    (contains a digit / is MPN-like); generic models yield None so we do NOT
+    risk over-merging unrelated products.
     """
     ean = _norm_token(ean)
     upc = _norm_token(upc)
@@ -227,7 +262,7 @@ def fingerprint(
         key = f"gtin:{upc}"
     elif mpn and brand:
         key = f"mpn:{brand}:{mpn}"
-    elif brand and model:
+    elif brand and model and not _is_generic_model(model, brand):
         key = f"bm:{brand}:{model}"
     else:
         return None  # insufficient identity -> cannot safely dedup

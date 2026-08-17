@@ -23,7 +23,12 @@ class PipelineState:
         if self.path.exists():
             self._state: dict[str, Any] = json.loads(self.path.read_text(encoding="utf-8"))
         else:
-            self._state = {"seen_urls": {}, "processed_raw_keys": {}, "updated_at": _now()}
+            self._state = {
+                "seen_urls": {},
+                "processed_raw_keys": {},
+                "processed_shards": {},  # shard_name -> {count, processed_at}
+                "updated_at": _now(),
+            }
 
     def has_url(self, source: str, url: str) -> bool:
         return url in self._state["seen_urls"].get(source, {})
@@ -37,6 +42,16 @@ class PipelineState:
 
     def mark_raw_key(self, source: str, key: str) -> None:
         self._state["processed_raw_keys"].setdefault(source, {})[key] = _now()
+        self._save()
+
+    def is_shard_processed(self, shard: str) -> bool:
+        return shard in self._state.get("processed_shards", {})
+
+    def mark_shard_processed(self, shard: str, count: int) -> None:
+        self._state.setdefault("processed_shards", {})[shard] = {
+            "count": count,
+            "processed_at": _now(),
+        }
         self._save()
 
     def _save(self) -> None:

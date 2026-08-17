@@ -1,0 +1,16 @@
+{
+  "interaction_id": "int_001",
+  "customer_id": "cust_anon_42",
+  "product_id": "mouse_d4658c5bdf388725",
+  "requirement_id": "req_001",
+  "event_type": "purchase",
+  "timestamp": "2026-08-15T21:05:00Z",
+  "rating": null,
+  "context": {
+    "position": 1,
+    "session": "sess_abc",
+    "candidate_set_size": 5
+  },
+  "explicit_feedback": null,
+  "label_source": "real_interaction"
+}

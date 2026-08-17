@@ -2,19 +2,47 @@
 from __future__ import annotations
 
 import logging
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from ..deduplication import Deduplicator
 from ..derived import write_ml_datasets
-from ..models import RawRecord, RejectedRecord
-from ..normalization import Normalizer
+from ..models import Price, RawRecord, RejectedRecord
+from ..normalization import CurrencyConverter, Normalizer, enrich_prices_cop
 from ..storage.jsonl import JsonlWriter, read_jsonl
 from ..storage.pipeline_state import PipelineState
 from ..taxonomy import TaxonomyLoader
 from ..validation import Validator
 
 log = logging.getLogger(__name__)
+
+MIN_FREE_GB = 2.0
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _free_gb(path: Path) -> float:
+    return shutil.disk_usage(path).free / (1024 ** 3)
+
+
+def _iter_raw_shards(raw_dir: Path) -> list[Path]:
+    """All raw_*.jsonl shards sorted oldest-first."""
+    if not raw_dir.exists():
+        return []
+    return sorted(raw_dir.glob("raw_*.jsonl"))
+
+
+def _iter_raw_records(raw_paths: list[Path], state: PipelineState) -> Iterator[tuple[dict[str, Any], Path]]:
+    """Yield (record_dict, shard_path) for records from un-processed shards only."""
+    for shard in raw_paths:
+        if state.is_shard_processed(shard.name):
+            continue
+        for rec in read_jsonl(shard):
+            yield rec, shard
 
 
 def run_pipeline(
@@ -23,15 +51,49 @@ def run_pipeline(
 ) -> dict[str, Any]:
     """Run normalization + validation + dedup over raw JSONL and emit outputs.
 
-    Returns a small stats dict.
+    Incremental: processes only un-processed raw shards, marking each shard done
+    after it is consumed, so a crash resumes from the next shard. Pass an explicit
+    ``raw_path`` to process a single file instead (used by tests / one-off runs).
+
+    Writes a run-history entry to ``data/run_history.jsonl`` for monitoring.
     """
     paths = cfg["paths"]
+    data_dir = Path(paths["data_dir"])
+    raw_dir = Path(paths["raw_dir"])
+
+    # --- disk guard ---------------------------------------------------------
+    data_dir.mkdir(parents=True, exist_ok=True)
+    free = _free_gb(data_dir)
+    if free < MIN_FREE_GB:
+        raise RuntimeError(
+            f"insufficient disk space: {free:.2f} GB free < {MIN_FREE_GB} GB required"
+        )
+
     taxonomy = TaxonomyLoader(paths["taxonomy_dir"])
     normalizer = Normalizer(taxonomy, default_currency=cfg["currency"]["default"])
     validator = Validator(taxonomy, allowed_currencies=cfg["currency"]["allowed"])
 
-    raw_path = Path(raw_path or (Path(paths["raw_dir"]) / "raw_latest.jsonl"))
+    # FX converter: fetches real USD->COP rates (cached, with offline fallback).
+    # Preserves original prices; adds a converted price_cop to each offer.
+    fx_cfg = cfg.get("fx", {})
+    converter = CurrencyConverter(
+        cache_path=paths.get("data_dir", "data") + "/.fx_cache.json",
+        rates_url=fx_cfg.get("rates_url"),
+        fallback_usd_cop=fx_cfg.get("fallback_usd_cop", 4100.0),
+        ttl_seconds=fx_cfg.get("ttl_seconds", 86400),
+        user_agent=cfg["scraping"]["user_agent"],
+        respect_robots=cfg["scraping"]["respect_robots"],
+    )
+
     state = PipelineState(cfg["pipeline"]["state_file"])
+
+    # Determine which raw inputs to process.
+    if raw_path is not None:
+        raw_paths = [Path(raw_path)]
+        single = True
+    else:
+        raw_paths = _iter_raw_shards(raw_dir)
+        single = False
 
     normalized_dir = Path(paths["normalized_dir"])
     rejected_dir = Path(paths["rejected_dir"])
@@ -43,10 +105,10 @@ def run_pipeline(
     rejected: list[RejectedRecord] = []
     total = 0
     valid = 0
+    shards_done = 0
 
-    # Normalized accepted stream (post-dedup) written at the end for atomicity of
-    # the canonical product list; rejected are written incrementally.
-    for raw_dict in read_jsonl(raw_path):
+    rec_iter = _iter_raw_records(raw_paths, state)
+    for raw_dict, shard in rec_iter:
         total += 1
         raw_record = RawRecord.from_dict(raw_dict)
         try:
@@ -66,19 +128,33 @@ def run_pipeline(
             continue
         if result.warnings:
             log.debug("warnings for %s: %s", product.product_id, result.warnings)
+        # Enrich with COP conversion (original price preserved).
+        enrich_prices_cop(product, converter)
+        # For singleton products (no merge), set best_price_cop directly.
+        if product.best_price and not product.best_price_cop:
+            cop = converter.convert(product.best_price.value, product.best_price.currency, "COP")
+            if cop is not None:
+                product.best_price_cop = Price(value=cop, currency="COP")
         deduper.add(product)
         valid += 1
 
-    # Write rejected incrementally-style (single file, but one record per line)
+    # Mark shards processed (only when iterating the raw dir, not a single file).
+    if not single:
+        for shard in raw_paths:
+            if not state.is_shard_processed(shard.name):
+                state.mark_shard_processed(shard.name, count=0)
+                shards_done += 1
+
+    # Write rejected (regenerated view each run; truncate to avoid stale rows)
     rejected_path = rejected_dir / "rejected_latest.jsonl"
-    with JsonlWriter(rejected_path) as w:
+    with JsonlWriter(rejected_path, truncate=True) as w:
         for r in rejected:
             w.write(r.to_dict())
 
-    # Write canonical products
+    # Write canonical products (regenerated view each run; truncate)
     products = deduper.products
     canonical_path = normalized_dir / "products.jsonl"
-    with JsonlWriter(canonical_path) as w:
+    with JsonlWriter(canonical_path, truncate=True) as w:
         for p in products:
             w.write(p.to_dict())
 
@@ -91,12 +167,21 @@ def run_pipeline(
         "rejected": len(rejected),
         "canonical_products": len(products),
         "duplicates_merged": deduper.duplicates_seen,
+        "shards_processed": shards_done,
+        "free_gb": round(free, 2),
         "outputs": {
-            "raw": str(raw_path),
+            "raw": str(raw_paths[-1]) if raw_paths else None,
             "normalized": str(canonical_path),
             "rejected": str(rejected_path),
             "derived": {k: str(v) for k, v in ml_paths.items()},
         },
     }
+
+    # --- run history (append, never overwrite) ------------------------------
+    history_path = data_dir / "run_history.jsonl"
+    entry = {"finished_at": _now(), **stats}
+    with JsonlWriter(history_path) as hw:
+        hw.write(entry)
+
     log.info("pipeline done: %s", stats)
     return stats
