@@ -100,3 +100,24 @@ Defines what a training example looks like — schema + derivation only, NO mode
 - Fixtures: data/sample/recommender/{requirement,interaction,training_example}.json
 - See RECOMMENDER.md for full design. This bridges to future: Requirement -> hard-filter
   (passes_hard_filter) -> ML ranking (compatibility + importance) -> LLM explanation.
+
+## Sources (scrapers)
+- `synthetic` (DEFAULT in config): SyntheticSourceScraper — deterministic generator
+  producing N realistic records across 4 categories. Honors --max-products (count).
+  dup_stores=2 → each physical product listed by 2 stores (same mpn+ean, different
+  price) to exercise cross-store dedup. reject_rate=0.03 → ~3% malformed (price_text
+  "Consultar") to exercise rejection. source_kind="synthetic", synthetic:// URLs.
+  EANs start "000" so never confused with real. Uses hashlib (not hash()) for
+  cross-run determinism. variant = product_idx // 4 makes every product distinct.
+- `bestbuy`: BestBuyScraper — real BBY Products API. Needs --api-key or BBY_API_KEY
+  or config bestbuy.api_key. page_size=100, max_pages=200 (20k cap). NOTE: BBY
+  rejects free-email domains (Gmail/Yahoo/Outlook) at signup — use non-free address.
+- `mercadolibre`: MercadoLibreScraper — real ML public API (site MCO=Colombia).
+  Read-only search needs no token, but ML 403s datacenter IPs (PolicyAgent). Set
+  ML_ACCESS_TOKEN for authenticated requests. page_size=50 (ML cap), offset pagination.
+  Maps ML attributes[] → specifications, seller.nickname → seller_name.
+- `sample`: SampleSourceScraper — reads data/sample/*.json fixtures (source_kind="sample").
+- CLI: --sources (comma list), --api-key (BBY, injected without config/env), --seed,
+  --max-products. If only real sources configured + --max-products but they can't
+  produce data here, synthetic is auto-added as fallback.
+- Validator _is_url accepts schemes: http, https, sample, synthetic.
