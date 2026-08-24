@@ -36,13 +36,23 @@ scraping:
 pipeline:
   state_file: data/.pipeline_state.json
   sources:
-    - sample   # offline, clearly-labeled sample fixtures
-    # - bestbuy  # real public Best Buy Products API (set BBY_API_KEY env to enable)
+    - synthetic   # deterministic generator; no key needed; tagged source_kind="synthetic"
+    # - sample      # offline fixtures (source_kind="sample")
+    # - bestbuy     # real Best Buy API (pass --api-key or set BBY_API_KEY)
+    # - mercadolibre # real ML API (site MCO; may 403 from datacenter IPs)
 
 # Best Buy Products API (https://developer.bestbuy.com).
-# Prefer the BBY_API_KEY env var; only put the key here for local dev, never commit it.
+# Prefer the --api-key CLI flag or BBY_API_KEY env var; only put the key here
+# for local dev, never commit it. NOTE: Best Buy rejects free-email domains
+# (Gmail/Yahoo/Outlook) at signup — use a non-free address to register.
 bestbuy:
   api_key: null
+
+# Mercado Libre public API (https://developers.mercadolibre.com).
+# Read-only search needs no token, but ML blocks datacenter IPs (403 PolicyAgent).
+# Register an app and set ML_ACCESS_TOKEN to use authenticated requests.
+mercadolibre:
+  site: MCO
 
 logging:
   level: INFO

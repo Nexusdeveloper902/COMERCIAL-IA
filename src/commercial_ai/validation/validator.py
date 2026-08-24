@@ -131,6 +131,6 @@ def _is_url(s: Any) -> bool:
         return False
     try:
         r = urlparse(s)
-        return bool(r.scheme in ("http", "https", "sample") and r.netloc)
+        return bool(r.scheme in ("http", "https", "sample", "synthetic") and r.netloc)
     except Exception:  # noqa: BLE001
         return False

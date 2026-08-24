@@ -49,17 +49,20 @@ class BestBuyScraper(BaseScraper):
         self,
         api_key: str | None = None,
         http_client: HttpClient | None = None,
-        page_size: int = 25,
-        max_pages: int = 20,
+        page_size: int = 100,
+        max_pages: int = 200,
     ) -> None:
         super().__init__(http_client=http_client)
         self.api_key = api_key or os.environ.get("BBY_API_KEY") or ""
         if not self.api_key:
             log.warning(
-                "BestBuyScraper: no API key (set BBY_API_KEY). "
+                "BestBuyScraper: no API key. Pass --api-key, set BBY_API_KEY, "
+                "or set bestbuy.api_key in config. Register a free key at "
+                "https://developer.bestbuy.com (note: Best Buy rejects free-email "
+                "domains like Gmail at signup — use a non-free address). "
                 "Adapter will yield no records."
             )
-        self.page_size = page_size
+        self.page_size = min(100, page_size)  # BBY caps pageSize at 100
         self.max_pages = max_pages
 
     def iter_raw_records(self) -> Iterator[RawRecord]:

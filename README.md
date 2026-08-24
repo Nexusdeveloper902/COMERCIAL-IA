@@ -79,20 +79,50 @@ if they're absent; JSONL+CSV are always produced.
 ## Running the pipeline
 
 ```bash
-python scripts/run_pipeline.py
-# or
-commercial-ai-pipeline
-# cap how many NEW raw records to collect this run:
-python scripts/run_pipeline.py --max-products 1000
+# Default: generates a deterministic 10k-scale synthetic dataset (no key needed,
+# tagged source_kind="synthetic") + full normalize/validate/dedup/FX/ML pipeline:
+python scripts/run_pipeline.py --max-products 10000
+
+# or the installed entry point:
+commercial-ai-pipeline --max-products 10000
+
+# Real Best Buy data (needs an API key — see "Sources" below):
+python scripts/run_pipeline.py --sources bestbuy --api-key YOUR_BBY_KEY --max-products 10000
+
+# Combine sources (Best Buy + Mercado Libre), falling back to synthetic if
+# the real sources yield nothing in this environment:
+python scripts/run_pipeline.py --sources bestbuy,mercadolibre --api-key YOUR_BBY_KEY --max-products 10000
+
 # 0 = unlimited:
 python scripts/run_pipeline.py --max-products 0
 # reuse existing raw jsonl without re-scraping:
 python scripts/run_pipeline.py --skip-collect
+# change the synthetic generator seed for a different (still reproducible) catalog:
+python scripts/run_pipeline.py --max-products 10000 --seed 99
 ```
+
+**Flags:**
+- `--max-products N` — cap new raw records this run (with the default `synthetic` source, this many are generated). Resumability state is still preserved.
+- `--sources a,b,c` — comma-separated source list: `synthetic`, `sample`, `bestbuy`, `mercadolibre`. Default: `config/config.yaml` `pipeline.sources` (currently `synthetic`).
+- `--api-key KEY` — Best Buy API key, injected without touching config/env files.
+- `--seed N` — seed for the synthetic generator (default 42).
 
 Outputs are written under `data/` and a stats summary is printed. Each run also
 appends an entry to `data/run_history.jsonl` (never overwritten) and writes a
 latest snapshot to `data/last_run_stats.json` for monitoring.
+
+### Sources
+
+| source | needs key? | notes |
+|---|---|---|
+| `synthetic` (default) | no | deterministic realistic generator; 10k-scale; `source_kind="synthetic"`. Lets the pipeline run end-to-end immediately. **NOT real data** — never relabel it. |
+| `sample` | no | offline fixtures from `data/sample/*.json`; `source_kind="sample"`. |
+| `bestbuy` | **yes** (`--api-key` or `BBY_API_KEY`) | real Best Buy Products API. Register at https://developer.bestbuy.com. **Note:** Best Buy rejects free-email domains (Gmail/Yahoo/Outlook) at signup — use a non-free address. Caps: 100/page × 200 pages = up to 20k records. |
+| `mercadolibre` | no (read-only) | real ML public API (site `MCO` = Colombia). ML blocks datacenter IPs (`403 PolicyAgent`); run from a residential connection or register an app at https://developers.mercadolibre.com and set `ML_ACCESS_TOKEN`. |
+
+If you configure only real sources (`bestbuy`/`mercadolibre`) with `--max-products`
+but they can't produce data here (no key / datacenter IP), the pipeline automatically
+adds the `synthetic` source so you still get a dataset — clearly tagged `synthetic`.
 
 ### Raw processing is incremental
 

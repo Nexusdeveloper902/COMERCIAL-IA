@@ -17,6 +17,13 @@ data/.pipeline_state.json
 data/.pipeline_state.tmp
 data/.fx_cache.json
 data/.fx_cache.tmp
+data/raw/
+data/normalized/
+data/rejected/
+data/derived/
+data/interactions/
+data/last_run_stats.json
+data/run_history.jsonl
 logs/*.log
 
 # IDE
